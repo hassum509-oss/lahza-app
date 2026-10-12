@@ -1,0 +1,783 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>لحظة | Lahza</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Cairo:wght@700;800;900&family=Tajawal:wght@400;500;700;900&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/firebase@10.12.2/firebase-app-compat.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/firebase@10.12.2/firebase-auth-compat.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/firebase@10.12.2/firebase-firestore-compat.js"></script>
+<style>
+  :root{
+    --bg: #14141c; --surface: #1c1c28; --surface-2: #24242f;
+    --accent: #ff6b4a; --accent-2: #ffb84d; --text: #f5f0e8; --text-muted: #8b8a9a;
+    --border: #2c2c3a; --success: #4dd0a8;
+  }
+  *{box-sizing:border-box; margin:0; padding:0;}
+  html,body{ background:#0b0b10; font-family:'Tajawal', sans-serif; color:var(--text); height:100%; }
+  body{ display:flex; justify-content:center; align-items:flex-start; min-height:100vh; padding:24px 0; }
+  .device{ width:100%; max-width:430px; min-height:90vh; background:var(--bg); border-radius:28px; overflow:hidden; position:relative;
+    box-shadow:0 30px 80px rgba(0,0,0,0.55), 0 0 0 1px var(--border); display:flex; flex-direction:column; }
+  .topbar{ display:flex; align-items:center; justify-content:space-between; padding:18px 18px 10px; }
+  .logo-row{ display:flex; align-items:center; gap:7px; }
+  .logo{ font-family:'Cairo',sans-serif; font-weight:900; font-size:24px; letter-spacing:-0.5px;
+    background:linear-gradient(90deg, var(--accent), var(--accent-2)); -webkit-background-clip:text; background-clip:text; color:transparent; }
+  .live-chip{ display:flex; align-items:center; gap:4px; background:rgba(77,208,168,0.12); border:1px solid rgba(77,208,168,0.35);
+    color:var(--success); font-size:10px; font-weight:700; padding:3px 7px; border-radius:20px; }
+  .live-dot{ width:6px; height:6px; border-radius:50%; background:var(--success); animation:pulse 1.8s ease-in-out infinite; }
+  .topbar .tagline{ font-size:12px; display:block; color:var(--text-muted); margin-top:-2px; }
+  .icon-btn{ width:38px; height:38px; border-radius:50%; background:var(--surface); border:1px solid var(--border);
+    display:flex; align-items:center; justify-content:center; color:var(--text); font-size:17px; cursor:pointer; position:relative; transition:transform .15s ease; }
+  .icon-btn:active{ transform:scale(0.92); }
+  .dot-badge{ position:absolute; top:-2px; left:-2px; width:10px; height:10px; border-radius:50%; background:var(--accent); border:2px solid var(--bg); }
+  .scroll{ flex:1; overflow-y:auto; padding-bottom:90px; }
+  .scroll::-webkit-scrollbar{ width:0px; }
+  .moment-banner{ margin:8px 16px 18px; border-radius:20px; padding:16px;
+    background:linear-gradient(135deg, rgba(255,107,74,0.18), rgba(255,184,77,0.08)); border:1px solid rgba(255,107,74,0.35);
+    display:flex; align-items:center; gap:14px; cursor:pointer; transition:transform .15s ease; }
+  .moment-banner:active{ transform:scale(0.98); }
+  .moment-ring{ width:52px; height:52px; border-radius:50%; flex-shrink:0; display:flex; align-items:center; justify-content:center;
+    background:radial-gradient(circle at 35% 30%, var(--accent-2), var(--accent)); font-size:22px; animation:pulse 1.8s ease-in-out infinite; position:relative; }
+  @keyframes pulse{ 0%,100%{ box-shadow:0 0 0 0 rgba(255,107,74,0.5); } 50%{ box-shadow:0 0 0 10px rgba(255,107,74,0); } }
+  .moment-text b{ font-family:'Cairo',sans-serif; font-size:15px; display:block; }
+  .moment-text span{ font-size:12.5px; color:var(--text-muted); display:block; margin-top:2px; }
+  .moment-timer{ margin-inline-start:auto; font-family:'Cairo',sans-serif; font-weight:800; font-size:15px; color:var(--accent-2); white-space:nowrap; }
+  .stories{ display:flex; gap:14px; padding:0 16px 20px; overflow-x:auto; }
+  .stories::-webkit-scrollbar{ display:none; }
+  .story{ display:flex; flex-direction:column; align-items:center; gap:6px; flex-shrink:0; cursor:pointer; }
+  .story-ring{ width:60px; height:60px; border-radius:50%; padding:2.5px; background:linear-gradient(135deg, var(--accent), var(--accent-2)); display:flex; align-items:center; justify-content:center; }
+  .story-ring.seen{ background:var(--border); }
+  .story-avatar{ width:100%; height:100%; border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:18px; font-weight:800; font-family:'Cairo',sans-serif; color:#fff; border:2.5px solid var(--bg); }
+  .story span{ font-size:11.5px; color:var(--text-muted); max-width:62px; text-align:center; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .story.add .story-ring{ background:var(--surface-2); border:1.5px dashed var(--border); }
+  .story.add .story-avatar{ font-size:22px; color:var(--accent); background:none; border:none; }
+  .section-label{ font-family:'Cairo',sans-serif; font-weight:800; font-size:15px; padding:4px 16px 12px; color:var(--text); display:flex; align-items:center; gap:8px; }
+  .section-label .line{ flex:1; height:1px; background:var(--border); }
+  .feed{ display:flex; flex-direction:column; gap:16px; padding:0 16px; }
+  .empty-feed{ text-align:center; padding:40px 20px; color:var(--text-muted); font-size:13px; line-height:1.8; }
+  .card{ background:var(--surface); border:1px solid var(--border); border-radius:20px; overflow:hidden; opacity:0; animation:rise .5s ease forwards; }
+  @keyframes rise{ from{opacity:0; transform:translateY(10px);} to{opacity:1; transform:translateY(0);} }
+  .card-head{ display:flex; align-items:center; gap:10px; padding:12px 14px; }
+  .avatar{ width:36px; height:36px; border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:16px; flex-shrink:0; color:#fff; font-weight:800; font-family:'Cairo',sans-serif; }
+  .who b{ font-size:13.5px; display:block; }
+  .who span{ font-size:11.5px; color:var(--text-muted); }
+  .honesty{ margin-inline-start:auto; font-size:10.5px; background:rgba(77,208,168,0.12); color:var(--success); border:1px solid rgba(77,208,168,0.35); padding:4px 9px; border-radius:20px; font-weight:700; white-space:nowrap; }
+  .honesty.retry{ background:rgba(255,184,77,0.1); color:var(--accent-2); border-color:rgba(255,184,77,0.35); }
+  .dual-shot{ position:relative; width:100%; aspect-ratio:4/5; background-size:cover; background-position:center; background-color:var(--surface-2); }
+  .dual-shot::before{ content:''; position:absolute; inset:0; background:linear-gradient(to top, rgba(0,0,0,0.35), rgba(0,0,0,0) 45%); pointer-events:none; }
+  .inset-shot{ position:absolute; top:12px; right:12px; width:30%; aspect-ratio:3/4; border-radius:12px; border:2.5px solid var(--bg); background-size:cover; background-position:center; }
+  .caption{ padding:12px 14px 4px; font-size:13.5px; line-height:1.6; color:var(--text); }
+  .actions{ display:flex; align-items:center; gap:18px; padding:10px 14px 14px; }
+  .act{ display:flex; align-items:center; gap:6px; background:none; border:none; color:var(--text-muted); font-family:'Tajawal',sans-serif; font-size:13px; font-weight:600; cursor:pointer; }
+  .act .ic{ font-size:17px; transition:transform .2s ease; }
+  .act.liked{ color:var(--accent); }
+  .act.liked .ic{ transform:scale(1.15); }
+  .comment-box{ display:flex; gap:8px; padding:0 14px 14px; }
+  .comment-box input{ flex:1; background:var(--surface-2); border:1px solid var(--border); border-radius:14px; padding:9px 12px; color:var(--text); font-family:'Tajawal',sans-serif; font-size:12.5px; }
+  .comment-box input::placeholder{ color:var(--text-muted); }
+  .comment-box button{ background:var(--accent); color:#1a0e0a; border:none; border-radius:14px; padding:0 16px; font-family:'Cairo',sans-serif; font-weight:800; font-size:12.5px; cursor:pointer; }
+  .comments-list{ padding:0 14px 14px; display:flex; flex-direction:column; gap:6px; }
+  .comments-list div{ font-size:12.5px; color:var(--text-muted); }
+  .comments-list b{ color:var(--text); font-weight:700; }
+  .bottomnav{ position:absolute; bottom:0; left:0; right:0; background:rgba(20,20,28,0.92); backdrop-filter:blur(10px); border-top:1px solid var(--border);
+    display:flex; justify-content:space-around; align-items:center; padding:10px 6px calc(10px + env(safe-area-inset-bottom)); }
+  .nav-btn{ background:none; border:none; color:var(--text-muted); display:flex; flex-direction:column; align-items:center; gap:3px; font-family:'Tajawal',sans-serif; font-size:10px; cursor:pointer; padding:4px 10px; }
+  .nav-btn .ic{ font-size:20px; }
+  .nav-btn.active{ color:var(--accent); }
+  .nav-btn.add .ic{ width:40px; height:40px; border-radius:12px; background:linear-gradient(135deg, var(--accent), var(--accent-2)); display:flex; align-items:center; justify-content:center; color:#1a0e0a; font-size:20px; margin-top:-18px; box-shadow:0 6px 16px rgba(255,107,74,0.4); }
+  .tab-panel{ display:none; padding:6px 16px 20px; }
+  .tab-panel.active{ display:block; }
+  .explore-grid{ display:grid; grid-template-columns:repeat(3,1fr); gap:6px; }
+  .explore-grid div{ aspect-ratio:1; border-radius:10px; background-size:cover; background-position:center; }
+  .notif-item{ display:flex; gap:12px; padding:12px 4px; border-bottom:1px solid var(--border); align-items:center; }
+  .notif-item .avatar{ width:38px; height:38px; }
+  .notif-item p{ font-size:13px; line-height:1.5; }
+  .notif-item span{ font-size:11px; color:var(--text-muted); }
+  .profile-head{ display:flex; flex-direction:column; align-items:center; padding:20px 0 10px; text-align:center; }
+  .profile-head .avatar{ width:84px; height:84px; font-size:34px; margin-bottom:10px; }
+  .profile-head h2{ font-family:'Cairo',sans-serif; font-size:18px; }
+  .profile-head p{ font-size:12.5px; color:var(--text-muted); margin-top:4px; }
+  .profile-stats{ display:flex; justify-content:center; gap:28px; padding:16px 0; }
+  .profile-stats div{ text-align:center; }
+  .profile-stats b{ display:block; font-family:'Cairo',sans-serif; font-size:16px; }
+  .profile-stats span{ font-size:11px; color:var(--text-muted); }
+  .streak-card{ background:linear-gradient(135deg, rgba(255,107,74,0.15), rgba(255,184,77,0.06)); border:1px solid rgba(255,107,74,0.3); border-radius:16px; padding:14px; margin:10px 0; display:flex; align-items:center; gap:12px; }
+  .streak-card b{ font-family:'Cairo',sans-serif; font-size:18px; color:var(--accent-2); }
+  .streak-card span{ font-size:12px; color:var(--text-muted); display:block; }
+  .logout-btn{ width:100%; margin-top:16px; background:var(--surface-2); color:var(--text-muted); border:1px solid var(--border); border-radius:14px; padding:12px; font-family:'Cairo',sans-serif; font-weight:800; font-size:13px; cursor:pointer; }
+  .modal-overlay{ position:absolute; inset:0; background:rgba(8,8,12,0.7); backdrop-filter:blur(4px); display:none; align-items:flex-end; z-index:20; }
+  .modal-overlay.open{ display:flex; }
+  .modal{ width:100%; background:var(--surface); border-radius:24px 24px 0 0; padding:18px 18px calc(18px + env(safe-area-inset-bottom)); animation:slideup .25s ease; }
+  @keyframes slideup{ from{ transform:translateY(30px); opacity:0; } to{ transform:translateY(0); opacity:1; } }
+  .modal h3{ font-family:'Cairo',sans-serif; font-size:16px; text-align:center; margin-bottom:14px; }
+  .capture-area{ position:relative; width:100%; aspect-ratio:4/5; border-radius:18px; overflow:hidden; margin-bottom:10px; background-size:cover; background-position:center; display:flex; align-items:center; justify-content:center; color:var(--text-muted); font-size:13px; text-align:center; padding:20px; }
+  .capture-inset{ position:absolute; top:10px; right:10px; width:28%; aspect-ratio:3/4; border-radius:10px; border:2.5px solid var(--surface); background-size:cover; background-position:center; }
+  .flash{ position:absolute; inset:0; background:#fff; opacity:0; pointer-events:none; }
+  .flash.go{ animation:flashfx .35s ease; }
+  @keyframes flashfx{ 0%{opacity:0;} 15%{opacity:0.9;} 100%{opacity:0;} }
+  .retake-btn{ display:block; margin:0 auto 10px; text-align:center; background:none; border:none; color:var(--accent-2); font-family:'Tajawal',sans-serif; font-size:12px; font-weight:700; cursor:pointer; }
+  .shutter-btn{ display:block; margin:0 auto 14px; width:64px; height:64px; border-radius:50%; background:var(--text); border:4px solid var(--border); cursor:pointer; }
+  .modal textarea{ width:100%; background:var(--surface-2); border:1px solid var(--border); border-radius:14px; padding:12px; color:var(--text); font-family:'Tajawal',sans-serif; font-size:13.5px; resize:none; min-height:56px; margin-bottom:12px; }
+  .modal-btns{ display:flex; gap:10px; }
+  .modal-btns button{ flex:1; border:none; border-radius:14px; padding:13px; font-family:'Cairo',sans-serif; font-weight:800; font-size:13.5px; cursor:pointer; }
+  .btn-cancel{ background:var(--surface-2); color:var(--text-muted); border:1px solid var(--border) !important; }
+  .btn-publish{ background:linear-gradient(90deg, var(--accent), var(--accent-2)); color:#1a0e0a; }
+  .btn-publish:disabled{ opacity:0.4; }
+  .splash{ position:absolute; inset:0; z-index:50; background:var(--bg); display:flex; flex-direction:column; align-items:center; justify-content:center; gap:20px; transition:opacity .5s ease, visibility .5s ease; }
+  .splash.hide{ opacity:0; visibility:hidden; pointer-events:none; }
+  .splash-ring{ width:96px; height:96px; border-radius:50%; background:linear-gradient(135deg, var(--accent), var(--accent-2)); display:flex; align-items:center; justify-content:center; font-size:38px; animation:splashpop .9s cubic-bezier(.34,1.56,.64,1) forwards, splashglow 1.8s ease-in-out infinite .9s; }
+  @keyframes splashpop{ from{ transform:scale(0.3); opacity:0; } to{ transform:scale(1); opacity:1; } }
+  @keyframes splashglow{ 0%,100%{ box-shadow:0 0 0 0 rgba(255,107,74,0.45); } 50%{ box-shadow:0 0 0 18px rgba(255,107,74,0); } }
+  .splash-text{ text-align:center; opacity:0; animation:splashfade .6s ease forwards .5s; }
+  @keyframes splashfade{ from{opacity:0; transform:translateY(6px);} to{opacity:1; transform:translateY(0);} }
+  .splash-text b{ font-family:'Cairo',sans-serif; font-weight:900; font-size:30px; display:block; }
+  .splash-text span{ font-size:13px; color:var(--text-muted); }
+  .auth-screen{ position:absolute; inset:0; z-index:40; background:var(--bg); display:none; flex-direction:column; padding:36px 24px; overflow-y:auto; }
+  .auth-screen.show{ display:flex; }
+  .auth-logo{ text-align:center; margin-bottom:26px; }
+  .auth-logo b{ font-family:'Cairo',sans-serif; font-size:30px; font-weight:900; background:linear-gradient(90deg, var(--accent), var(--accent-2)); -webkit-background-clip:text; background-clip:text; color:transparent; display:block; }
+  .auth-logo span{ font-size:13px; color:var(--text-muted); }
+  .auth-tabs{ display:flex; background:var(--surface); border-radius:14px; padding:4px; margin-bottom:20px; }
+  .auth-tab{ flex:1; text-align:center; padding:10px; border-radius:11px; font-family:'Cairo',sans-serif; font-weight:800; font-size:13px; color:var(--text-muted); cursor:pointer; }
+  .auth-tab.active{ background:linear-gradient(135deg, var(--accent), var(--accent-2)); color:#1a0e0a; }
+  .field{ margin-bottom:12px; }
+  .field label{ font-size:12px; color:var(--text-muted); display:block; margin-bottom:6px; }
+  .field input{ width:100%; background:var(--surface-2); border:1px solid var(--border); border-radius:12px; padding:12px 14px; color:var(--text); font-family:'Tajawal',sans-serif; font-size:13.5px; }
+  .auth-error{ color:#ff8080; font-size:12px; min-height:16px; margin-bottom:8px; text-align:center; }
+  .auth-submit{ width:100%; border:none; border-radius:14px; padding:14px; background:linear-gradient(90deg, var(--accent), var(--accent-2)); color:#1a0e0a; font-family:'Cairo',sans-serif; font-weight:800; font-size:14px; cursor:pointer; margin-top:6px; }
+  .auth-submit[disabled]{ opacity:0.5; }
+  .flashback{ display:flex; align-items:center; gap:14px; background:var(--surface); border:1px solid var(--border); border-radius:20px; padding:14px; }
+  .flashback-thumb{ width:64px; height:64px; border-radius:14px; flex-shrink:0; position:relative; overflow:hidden; background:linear-gradient(135deg,#6bd6ff,#4a9aff); }
+  .flashback-thumb::after{ content:'🔒'; position:absolute; inset:0; display:flex; align-items:center; justify-content:center; background:rgba(0,0,0,0.35); font-size:20px; }
+  .flashback-info b{ font-family:'Cairo',sans-serif; font-size:13.5px; color:var(--accent-2); display:block; }
+  .flashback-info p{ font-size:12px; color:var(--text-muted); margin-top:3px; line-height:1.4; }
+  .flashback-btn{ margin-inline-start:auto; background:linear-gradient(135deg, var(--accent), var(--accent-2)); color:#1a0e0a; border:none; border-radius:12px; padding:8px 14px; font-family:'Cairo',sans-serif; font-weight:800; font-size:11.5px; cursor:pointer; flex-shrink:0; }
+  .heart-burst{ position:absolute; inset:0; display:flex; align-items:center; justify-content:center; font-size:84px; opacity:0; pointer-events:none; filter:drop-shadow(0 4px 14px rgba(0,0,0,0.4)); }
+  .heart-burst.go{ animation:heartpop .65s cubic-bezier(.17,.89,.32,1.49); }
+  @keyframes heartpop{ 0%{opacity:0; transform:scale(0.3);} 30%{opacity:1; transform:scale(1.15);} 60%{opacity:1; transform:scale(1);} 100%{opacity:0; transform:scale(1);} }
+  .celebrate-overlay{ position:absolute; inset:0; z-index:45; pointer-events:none; display:none; }
+  .celebrate-overlay.go{ display:block; }
+  .confetto{ position:absolute; bottom:120px; left:50%; font-size:24px; opacity:0; animation:confettifly 1.3s ease-out forwards; }
+  @keyframes confettifly{ 0%{ opacity:1; transform:translate(-50%,0) scale(0.6); } 100%{ opacity:0; transform:translate(calc(-50% + var(--dx)), -260px) scale(1); } }
+  .celebrate-badge{ position:absolute; left:50%; bottom:200px; transform:translateX(-50%) scale(0.7); background:linear-gradient(135deg, var(--accent), var(--accent-2)); color:#1a0e0a; font-family:'Cairo',sans-serif; font-weight:800; font-size:13px; padding:12px 18px; border-radius:16px; white-space:nowrap; opacity:0; box-shadow:0 10px 30px rgba(255,107,74,0.4); animation:badgepop 1.4s ease forwards; }
+  @keyframes badgepop{ 0%{opacity:0; transform:translateX(-50%) scale(0.7);} 20%{opacity:1; transform:translateX(-50%) scale(1.05);} 30%{transform:translateX(-50%) scale(1);} 80%{opacity:1;} 100%{opacity:0; transform:translateX(-50%) scale(1);} }
+  .chat-top{ display:flex; align-items:center; justify-content:space-between; padding-bottom:12px; }
+  .chat-top h3{ font-family:'Cairo',sans-serif; font-size:16px; font-weight:800; }
+  .chat-newbtns{ display:flex; gap:8px; }
+  .chip-btn{ background:var(--surface); border:1px solid var(--border); color:var(--text); border-radius:12px; padding:8px 12px; font-family:'Tajawal',sans-serif; font-size:12px; font-weight:700; cursor:pointer; }
+  .chat-row{ display:flex; align-items:center; gap:12px; padding:12px 4px; border-bottom:1px solid var(--border); cursor:pointer; }
+  .chat-row .avatar{ width:46px; height:46px; font-size:18px; }
+  .chat-row .meta{ flex:1; min-width:0; }
+  .chat-row .meta b{ font-size:13.5px; display:block; }
+  .chat-row .meta span{ font-size:12px; color:var(--text-muted); display:block; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  .chat-row .time{ font-size:10.5px; color:var(--text-muted); flex-shrink:0; }
+  .convo-screen{ position:absolute; inset:0; z-index:30; background:var(--bg); display:none; flex-direction:column; }
+  .convo-screen.open{ display:flex; }
+  .convo-head{ display:flex; align-items:center; gap:10px; padding:16px; border-bottom:1px solid var(--border); }
+  .convo-head b{ font-size:14px; }
+  .convo-messages{ flex:1; overflow-y:auto; padding:14px; display:flex; flex-direction:column; gap:8px; }
+  .msg{ max-width:75%; padding:9px 13px; border-radius:16px; font-size:13px; line-height:1.5; }
+  .msg.mine{ align-self:flex-end; background:linear-gradient(135deg, var(--accent), var(--accent-2)); color:#1a0e0a; border-bottom-left-radius:4px; }
+  .msg.theirs{ align-self:flex-start; background:var(--surface); border:1px solid var(--border); border-bottom-right-radius:4px; }
+  .msg-time{ font-size:9.5px; opacity:.65; margin-top:3px; display:block; }
+  .convo-input{ display:flex; gap:8px; padding:12px 14px calc(12px + env(safe-area-inset-bottom)); border-top:1px solid var(--border); }
+  .convo-input input{ flex:1; background:var(--surface-2); border:1px solid var(--border); border-radius:16px; padding:11px 14px; color:var(--text); font-family:'Tajawal',sans-serif; font-size:13.5px; }
+  .convo-input button{ background:var(--accent); color:#1a0e0a; border:none; border-radius:16px; padding:0 18px; font-family:'Cairo',sans-serif; font-weight:800; cursor:pointer; }
+  .search-overlay{ position:absolute; inset:0; z-index:35; background:var(--bg); display:none; flex-direction:column; padding:16px; }
+  .search-overlay.open{ display:flex; }
+  .search-head{ display:flex; align-items:center; gap:10px; margin-bottom:14px; }
+  .search-head input{ flex:1; background:var(--surface); border:1px solid var(--border); border-radius:14px; padding:12px 14px; color:var(--text); font-family:'Tajawal',sans-serif; font-size:13.5px; }
+  .search-result{ display:flex; align-items:center; gap:12px; padding:10px 4px; cursor:pointer; }
+  .search-result b{ font-size:13.5px; }
+  .chips-row{ display:flex; flex-wrap:wrap; gap:6px; margin-bottom:12px; }
+  .chip{ background:var(--surface-2); border:1px solid var(--border); border-radius:20px; padding:6px 12px; font-size:12px; display:flex; align-items:center; gap:6px; }
+  .chip button{ background:none; border:none; color:var(--text-muted); cursor:pointer; font-size:13px; }
+  .bio-box{ margin:6px 0 0; width:100%; }
+  .bio-box textarea{ width:100%; background:var(--surface-2); border:1px solid var(--border); border-radius:12px; padding:10px; color:var(--text); font-family:'Tajawal',sans-serif; font-size:12.5px; resize:none; min-height:50px; }
+  .bio-box button{ margin-top:6px; background:var(--surface); border:1px solid var(--border); color:var(--accent-2); border-radius:10px; padding:7px 14px; font-size:11.5px; font-weight:700; cursor:pointer; }
+</style>
+</head>
+<body>
+<div class="device">
+
+  <div class="splash" id="splashScreen">
+    <div class="splash-ring">📸</div>
+    <div class="splash-text"><b>لحظة</b><span>لا فلاتر. لا انتظار. فقط الآن.</span></div>
+  </div>
+
+  <div class="auth-screen" id="authScreen">
+    <div class="auth-logo"><b>لحظة</b><span>سجّل دخولك عشان تشارك لحظتك مع جماعتك</span></div>
+    <div class="auth-tabs">
+      <div class="auth-tab active" id="tabLogin" onclick="switchAuthTab('login')">تسجيل الدخول</div>
+      <div class="auth-tab" id="tabSignup" onclick="switchAuthTab('signup')">حساب جديد</div>
+    </div>
+    <div class="field" id="nameField" style="display:none;">
+      <label>اسمك</label>
+      <input type="text" id="authName" placeholder="مثال: سارة">
+    </div>
+    <div class="field">
+      <label>البريد الإلكتروني</label>
+      <input type="email" id="authEmail" placeholder="you@example.com">
+    </div>
+    <div class="field">
+      <label>كلمة المرور</label>
+      <input type="password" id="authPass" placeholder="6 أحرف على الأقل">
+    </div>
+    <div class="auth-error" id="authError"></div>
+    <button class="auth-submit" id="authSubmitBtn" onclick="submitAuth()">تسجيل الدخول</button>
+  </div>
+
+  <div class="celebrate-overlay" id="celebrateOverlay"></div>
+
+  <div id="appRoot" style="display:none; flex-direction:column; height:100%; width:100%;">
+    <div class="topbar">
+      <div>
+        <div class="logo-row"><div class="logo">لحظة</div><div class="live-chip"><span class="live-dot"></span>مباشر</div></div>
+        <span class="tagline">لا فلاتر. لا انتظار. فقط الآن.</span>
+      </div>
+      <div style="display:flex; gap:10px;">
+        <button class="icon-btn" onclick="showTab('notif')">🔔<span class="dot-badge"></span></button>
+        <button class="icon-btn" onclick="showTab('profile')">👤</button>
+      </div>
+    </div>
+
+    <div class="scroll">
+      <div id="tab-home" class="tab-panel active" style="padding:0;">
+        <div class="moment-banner" onclick="openComposer()">
+          <div class="moment-ring">📸</div>
+          <div class="moment-text"><b>حان وقت اللحظة!</b><span>التقط ما تفعله الآن قبل انتهاء الوقت</span></div>
+          <div class="moment-timer" id="timerDisplay">01:47</div>
+        </div>
+        <div class="stories" id="storiesRow"></div>
+        <div class="section-label"><span>لحظات الجميع الآن</span><div class="line"></div></div>
+        <div style="padding:0 16px 16px;">
+          <div class="flashback" onclick="openFlashback()">
+            <div class="flashback-thumb"></div>
+            <div class="flashback-info"><b>✨ ذكرى من قبل سنة</b><p>كنت وقتها في أول يوم عمل جديد، متحمس ومتوتر بنفس الوقت 😅</p></div>
+            <button class="flashback-btn">عرض</button>
+          </div>
+        </div>
+        <div class="feed" id="feedList"></div>
+      </div>
+
+      <div id="tab-notif" class="tab-panel">
+        <div class="section-label" style="padding-right:4px;"><span>الإشعارات</span><div class="line"></div></div>
+        <div id="notifList"></div>
+      </div>
+
+      <div id="tab-profile" class="tab-panel">
+        <div class="profile-head">
+          <div class="avatar" id="myAvatar" style="background:linear-gradient(135deg,#ff6b4a,#ffb84d); width:84px; height:84px; font-size:30px;">؟</div>
+          <h2 id="myName">...</h2>
+          <p id="myMeta">...</p>
+          <div class="bio-box">
+            <textarea id="bioInput" placeholder="اكتب نبذة عنك يشوفها الكل..."></textarea>
+            <button onclick="saveBio()">حفظ النبذة</button>
+          </div>
+        </div>
+        <div class="profile-stats"><div><b id="statPosts">0</b><span>لحظة</span></div><div><b>—</b><span>متابِع</span></div><div><b>—</b><span>يتابع</span></div></div>
+        <div class="streak-card"><div style="font-size:26px;">🔥</div><div><b>حسابك مفعّل ومباشر</b><span>كل لحظة تنشرها تظهر فورًا لكل من بجماعتك</span></div></div>
+        <div class="section-label" style="padding-right:4px;"><span>شبكة لحظاتك</span><div class="line"></div></div>
+        <div class="explore-grid" id="myGrid"></div>
+        <button class="logout-btn" onclick="logOut()">تسجيل الخروج</button>
+      </div>
+    </div>
+
+    <div class="bottomnav">
+      <button class="nav-btn active" id="nav-home" onclick="showTab('home')"><span class="ic">🏠</span>الرئيسية</button>
+      <button class="nav-btn" id="nav-chat" onclick="showTab('chat')"><span class="ic">💬</span>دردشة</button>
+      <button class="nav-btn add" onclick="openComposer()"><span class="ic">+</span></button>
+      <button class="nav-btn" id="nav-notif2" onclick="showTab('notif')"><span class="ic">🔔</span>إشعارات</button>
+      <button class="nav-btn" id="nav-profile" onclick="showTab('profile')"><span class="ic">👤</span>حسابي</button>
+    </div>
+
+    <div id="tab-chat" class="tab-panel" style="position:absolute; inset:0; top:0; background:var(--bg); padding-top:70px; overflow-y:auto; display:none;">
+      <div class="chat-top"><h3>محادثاتك</h3><div class="chat-newbtns">
+        <button class="chip-btn" onclick="openNewChat()">+ دردشة</button>
+        <button class="chip-btn" onclick="openNewGroup()">+ مجموعة</button>
+      </div></div>
+      <div id="chatList"></div>
+    </div>
+
+    <div class="convo-screen" id="convoScreen">
+      <div class="convo-head"><button class="icon-btn" onclick="closeConvo()">→</button><div class="avatar" id="convoAvatar" style="width:40px;height:40px;font-size:15px;">؟</div><b id="convoTitle">...</b></div>
+      <div class="convo-messages" id="convoMessages"></div>
+      <div class="convo-input"><input type="text" id="convoInput" placeholder="اكتب رسالة..." onkeydown="if(event.key==='Enter') sendMessage()"><button onclick="sendMessage()">إرسال</button></div>
+    </div>
+
+    <div class="search-overlay" id="searchOverlay">
+      <div class="search-head"><button class="icon-btn" onclick="closeSearchOverlay()">✕</button><input type="text" id="searchInput" placeholder="دوّر باسم شخص..." oninput="runPeopleSearch(this.value)"></div>
+      <div id="groupNameWrap" style="display:none; margin-bottom:14px;"><input type="text" id="groupNameInput" placeholder="اسم المجموعة" style="width:100%; background:var(--surface-2); border:1px solid var(--border); border-radius:12px; padding:11px 14px; color:var(--text); font-family:'Tajawal',sans-serif; font-size:13.5px;"></div>
+      <div class="chips-row" id="selectedChips"></div>
+      <div id="searchResults" style="flex:1; overflow-y:auto;"></div>
+      <button class="btn-publish" id="searchConfirmBtn" style="display:none; width:100%; padding:13px; border-radius:14px;" onclick="confirmGroupCreate()">إنشاء المجموعة</button>
+    </div>
+
+    <div class="modal-overlay" id="composerOverlay">
+      <div class="modal">
+        <h3>التقط لحظتك الحقيقية</h3>
+        <div class="capture-area" id="captureArea">اضغط على الزر أدناه لالتقاط صورتك<div class="flash" id="flashEl"></div></div>
+        <button class="retake-btn" id="retakeBtn" style="display:none;" onclick="retake()">↻ إعادة الالتقاط</button>
+        <button class="shutter-btn" id="shutterBtn" onclick="startCapture()"></button>
+        <textarea id="captionInput" placeholder="اكتب تعليقًا على لحظتك (اختياري)" disabled></textarea>
+        <div class="modal-btns"><button class="btn-cancel" onclick="closeComposer()">إلغاء</button><button class="btn-publish" id="publishBtn" onclick="publish()" disabled>نشر اللحظة</button></div>
+        <input type="file" accept="image/*" capture="environment" id="backCamInput" style="display:none;">
+        <input type="file" accept="image/*" capture="user" id="frontCamInput" style="display:none;">
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+const firebaseConfig = {
+  apiKey: "AIzaSyDqkXStP8avFslEOY90BM-irEYdPBo5WtY",
+  authDomain: "lahza-63639.firebaseapp.com",
+  projectId: "lahza-63639",
+  storageBucket: "lahza-63639.firebasestorage.app",
+  messagingSenderId: "777504699785",
+  appId: "1:777504699785:web:70c3bccef7bc77615d5d58"
+};
+firebase.initializeApp(firebaseConfig);
+const auth = firebase.auth();
+const db = firebase.firestore();
+
+const gradients = [
+  'linear-gradient(135deg,#ff6b4a,#ffb84d)','linear-gradient(135deg,#4dd0a8,#2c9c86)','linear-gradient(135deg,#6b8cff,#4a5bff)',
+  'linear-gradient(135deg,#c86bff,#ff6bd6)','linear-gradient(135deg,#ffd76b,#ff9a4a)','linear-gradient(135deg,#6bd6ff,#4a9aff)','linear-gradient(135deg,#ff6b8c,#ff4a6b)',
+];
+function g(i){ return gradients[i % gradients.length]; }
+function hashStr(s){ let h=0; for(let i=0;i<s.length;i++){ h=(h*31+s.charCodeAt(i))>>>0; } return h; }
+function timeAgo(ts){
+  if(!ts) return 'الآن';
+  const diff = Math.max(0, Date.now()-ts);
+  const mins = Math.floor(diff/60000);
+  if(mins<1) return 'الآن';
+  if(mins<60) return `قبل ${mins} دقيقة`;
+  const hrs = Math.floor(mins/60);
+  if(hrs<24) return `قبل ${hrs} ساعة`;
+  return `قبل ${Math.floor(hrs/24)} يوم`;
+}
+function escapeHtml(s){ const d=document.createElement('div'); d.textContent=s; return d.innerHTML; }
+
+let myId = null, myName = '', postsCache = [], usersCache = {};
+
+// ---------------- AUTH ----------------
+let authMode = 'login';
+function switchAuthTab(mode){
+  authMode = mode;
+  document.getElementById('tabLogin').classList.toggle('active', mode==='login');
+  document.getElementById('tabSignup').classList.toggle('active', mode==='signup');
+  document.getElementById('nameField').style.display = mode==='signup' ? 'block' : 'none';
+  document.getElementById('authSubmitBtn').textContent = mode==='signup' ? 'إنشاء الحساب' : 'تسجيل الدخول';
+  document.getElementById('authError').textContent = '';
+}
+function translateAuthError(err){
+  const map = {
+    'auth/email-already-in-use':'هذا البريد مستخدم من قبل، سجّل دخول بدلاً من ذلك',
+    'auth/invalid-email':'بريد إلكتروني غير صالح', 'auth/weak-password':'كلمة المرور لازم تكون 6 أحرف على الأقل',
+    'auth/user-not-found':'ما فيه حساب بهذا البريد', 'auth/wrong-password':'كلمة المرور غير صحيحة',
+    'auth/invalid-credential':'بيانات الدخول غير صحيحة', 'auth/missing-password':'أدخل كلمة المرور',
+  };
+  return map[err.code] || ('حدث خطأ: ' + err.message);
+}
+function submitAuth(){
+  const email = document.getElementById('authEmail').value.trim();
+  const pass = document.getElementById('authPass').value;
+  const name = document.getElementById('authName').value.trim();
+  const errEl = document.getElementById('authError');
+  const btn = document.getElementById('authSubmitBtn');
+  errEl.textContent = '';
+  if(!email || !pass || (authMode==='signup' && !name)){ errEl.textContent = 'عبّي كل الحقول المطلوبة'; return; }
+  btn.disabled = true; btn.textContent = '...جارِ المعالجة';
+  const done = () => { btn.disabled = false; btn.textContent = authMode==='signup' ? 'إنشاء الحساب' : 'تسجيل الدخول'; };
+  if(authMode === 'signup'){
+    auth.createUserWithEmailAndPassword(email, pass)
+      .then(cred => Promise.all([
+        cred.user.updateProfile({ displayName: name }),
+        db.collection('users').doc(cred.user.uid).set({ name, email, bio:'', createdAt: Date.now() })
+      ]))
+      .then(done).catch(err => { errEl.textContent = translateAuthError(err); done(); });
+  } else {
+    auth.signInWithEmailAndPassword(email, pass).then(done).catch(err => { errEl.textContent = translateAuthError(err); done(); });
+  }
+}
+function logOut(){ auth.signOut(); }
+
+auth.onAuthStateChanged(user => {
+  document.getElementById('splashScreen').classList.add('hide');
+  if(user){
+    myId = user.uid; myName = user.displayName || user.email.split('@')[0];
+    document.getElementById('authScreen').classList.remove('show');
+    document.getElementById('appRoot').style.display = 'flex';
+    updateProfileUI();
+    subscribeUsers();
+    subscribeFeed();
+  } else {
+    myId = null;
+    document.getElementById('appRoot').style.display = 'none';
+    document.getElementById('authScreen').classList.add('show');
+  }
+});
+
+function updateProfileUI(){
+  document.getElementById('myName').textContent = myName;
+  document.getElementById('myMeta').textContent = 'حسابك متصل ومباشر';
+  document.getElementById('myAvatar').textContent = (myName||'؟').charAt(0).toUpperCase();
+}
+function subscribeUsers(){
+  db.collection('users').onSnapshot(snap => {
+    usersCache = {};
+    snap.forEach(d => { usersCache[d.id] = d.data(); });
+  });
+}
+async function loadMyBio(){
+  const doc = await db.collection('users').doc(myId).get();
+  if(doc.exists){ document.getElementById('bioInput').value = (doc.data()||{}).bio || ''; }
+}
+function saveBio(){
+  const bio = document.getElementById('bioInput').value.trim().slice(0,200);
+  db.collection('users').doc(myId).update({ bio }).catch(()=>{});
+}
+
+// ---------------- IMAGE CAPTURE ----------------
+let tempMain = null, tempInset = null, retryCount = 0;
+function resizeImage(file, maxDim, quality){
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = e => {
+      const img = new Image();
+      img.onload = () => {
+        let w=img.width, h=img.height;
+        if(w>h){ if(w>maxDim){ h=Math.round(h*maxDim/w); w=maxDim; } } else { if(h>maxDim){ w=Math.round(w*maxDim/h); h=maxDim; } }
+        const canvas = document.createElement('canvas'); canvas.width=w; canvas.height=h;
+        canvas.getContext('2d').drawImage(img,0,0,w,h);
+        resolve(canvas.toDataURL('image/jpeg', quality));
+      };
+      img.onerror = reject; img.src = e.target.result;
+    };
+    reader.onerror = reject; reader.readAsDataURL(file);
+  });
+}
+document.addEventListener('DOMContentLoaded', () => {
+  const backInput = document.getElementById('backCamInput');
+  const frontInput = document.getElementById('frontCamInput');
+  backInput.addEventListener('change', async e => {
+    const file = e.target.files[0]; if(!file) return;
+    if(tempMain) retryCount++;
+    tempMain = await resizeImage(file, 900, 0.65);
+    renderCapturePreview();
+    document.getElementById('captionInput').disabled = false;
+    document.getElementById('publishBtn').disabled = false;
+    document.getElementById('retakeBtn').style.display = 'block';
+    document.getElementById('shutterBtn').style.display = 'none';
+    e.target.value = '';
+    setTimeout(() => frontInput.click(), 300);
+  });
+  frontInput.addEventListener('change', async e => {
+    const file = e.target.files[0]; if(!file) return;
+    tempInset = await resizeImage(file, 450, 0.6);
+    renderCapturePreview();
+    e.target.value = '';
+  });
+  loadMyBio();
+});
+function renderCapturePreview(){
+  const area = document.getElementById('captureArea');
+  if(!tempMain){ area.style.backgroundImage=''; area.innerHTML = 'اضغط على الزر أدناه لالتقاط صورتك<div class="flash" id="flashEl"></div>'; return; }
+  area.style.backgroundImage = `url(${tempMain})`;
+  area.innerHTML = (tempInset ? `<div class="capture-inset" style="background-image:url(${tempInset});"></div>` : '') + '<div class="flash go"></div>';
+}
+function startCapture(){ document.getElementById('backCamInput').click(); }
+function retake(){
+  tempMain=null; tempInset=null;
+  document.getElementById('retakeBtn').style.display='none';
+  document.getElementById('shutterBtn').style.display='block';
+  document.getElementById('captionInput').disabled=true;
+  document.getElementById('publishBtn').disabled=true;
+  renderCapturePreview();
+  document.getElementById('backCamInput').click();
+}
+function openComposer(){ document.getElementById('composerOverlay').classList.add('open'); }
+function closeComposer(){ document.getElementById('composerOverlay').classList.remove('open'); resetComposer(); }
+function resetComposer(){
+  tempMain=null; tempInset=null; retryCount=0;
+  document.getElementById('retakeBtn').style.display='none';
+  document.getElementById('shutterBtn').style.display='block';
+  renderCapturePreview();
+  document.getElementById('captionInput').disabled=true;
+  document.getElementById('captionInput').value='';
+  document.getElementById('publishBtn').disabled=true;
+}
+function publish(){
+  if(!tempMain || !myId) return;
+  const caption = document.getElementById('captionInput').value.trim() || 'لحظة بدون تعليق';
+  const btn = document.getElementById('publishBtn');
+  btn.disabled=true; btn.textContent='...جارِ النشر';
+  db.collection('moments').add({
+    authorId: myId, mainImage: tempMain, insetImage: tempInset, caption, retries: retryCount,
+    likedBy: [], comments: [], createdAt: Date.now()
+  }).then(() => { closeComposer(); showTab('home'); celebrate(); })
+    .catch(err => alert('تعذّر النشر: ' + err.message))
+    .finally(() => { btn.disabled=false; btn.textContent='نشر اللحظة'; });
+}
+
+// ---------------- FEED ----------------
+function subscribeFeed(){
+  db.collection('moments').orderBy('createdAt','desc').limit(50).onSnapshot(snap => {
+    postsCache = snap.docs.map(d => ({ id:d.id, ...d.data() }));
+    renderFeed(); renderStories(); renderNotifs(); renderGrids();
+    document.getElementById('statPosts').textContent = postsCache.filter(p=>p.authorId===myId).length;
+  }, err => console.error('feed error', err));
+}
+function nameOf(uid){ return (usersCache[uid] && usersCache[uid].name) || 'مستخدم'; }
+
+function renderFeed(){
+  const list = document.getElementById('feedList');
+  if(postsCache.length === 0){ list.innerHTML = '<div class="empty-feed">ما فيه لحظات بعد — كن أول من يشارك لحظته! 📸</div>'; return; }
+  list.innerHTML = postsCache.map((p, idx) => {
+    const likedBy = p.likedBy || [];
+    const liked = myId && likedBy.includes(myId);
+    const honestyLabel = (!p.retries) ? '✓ لحظة صادقة' : `↻ ${p.retries} إعادة محاولة`;
+    const name = nameOf(p.authorId);
+    const avatarGrad = g(hashStr(p.authorId||'x'));
+    const insetHtml = p.insetImage ? `<div class="inset-shot" style="background-image:url(${p.insetImage});"></div>` : '';
+    const comments = p.comments || [];
+    return `<div class="card" style="animation-delay:${idx*0.05}s">
+      <div class="card-head"><div class="avatar" style="background:${avatarGrad};">${name.charAt(0).toUpperCase()}</div>
+      <div class="who"><b>${escapeHtml(name)}</b><span>${timeAgo(p.createdAt)}</span></div>
+      <div class="honesty ${p.retries?'retry':''}">${honestyLabel}</div></div>
+      <div class="dual-shot" style="background-image:url(${p.mainImage});" ondblclick="burstHeart('${p.id}')">${insetHtml}<div class="heart-burst" id="heart-${p.id}">❤️</div></div>
+      <div class="caption">${escapeHtml(p.caption||'')}</div>
+      <div class="actions">
+        <button class="act ${liked?'liked':''}" onclick="toggleLike('${p.id}')"><span class="ic">${liked?'❤️':'🤍'}</span><span>${likedBy.length}</span></button>
+        <button class="act"><span class="ic">💬</span>${comments.length}</button>
+        <button class="act"><span class="ic">↗️</span>مشاركة</button>
+      </div>
+      ${comments.length ? `<div class="comments-list">${comments.map(c=>`<div><b>${escapeHtml(c.name)}</b> ${escapeHtml(c.text)}</div>`).join('')}</div>` : ''}
+      <div class="comment-box"><input type="text" placeholder="أضف تعليقًا..." id="cmt-${p.id}" onkeydown="if(event.key==='Enter') addComment('${p.id}')"><button onclick="addComment('${p.id}')">إرسال</button></div>
+    </div>`;
+  }).join('');
+}
+function toggleLike(id){
+  if(!myId) return;
+  const p = postsCache.find(x=>x.id===id); if(!p) return;
+  const likedBy = p.likedBy || [];
+  const liked = likedBy.includes(myId);
+  const newLikedBy = liked ? likedBy.filter(u=>u!==myId) : [...likedBy, myId];
+  db.collection('moments').doc(id).update({ likedBy:newLikedBy }).catch(console.error);
+}
+function burstHeart(id){
+  if(!myId) return;
+  const p = postsCache.find(x=>x.id===id); if(!p) return;
+  if(!(p.likedBy||[]).includes(myId)) toggleLike(id);
+  requestAnimationFrame(() => {
+    const heart = document.getElementById('heart-'+id); if(!heart) return;
+    heart.classList.remove('go'); void heart.offsetWidth; heart.classList.add('go');
+  });
+}
+function addComment(id){
+  if(!myId) return;
+  const input = document.getElementById('cmt-'+id);
+  const val = input.value.trim(); if(!val) return;
+  input.value='';
+  const p = postsCache.find(x=>x.id===id); if(!p) return;
+  const newComments = [...(p.comments||[]), { name: myName, text: val, ts: Date.now() }];
+  db.collection('moments').doc(id).update({ comments:newComments }).catch(console.error);
+}
+function openFlashback(){ alert('قبل سنة من اليوم بالضبط:\n\n"كنت وقتها في أول يوم عمل جديد، متحمس ومتوتر بنفس الوقت 😅"'); }
+function celebrate(){
+  const overlay = document.getElementById('celebrateOverlay'); overlay.innerHTML='';
+  const emojis = ['🎉','✨','🔥','❤️','⭐'];
+  for(let i=0;i<14;i++){
+    const span = document.createElement('span'); span.className='confetto';
+    span.textContent = emojis[Math.floor(Math.random()*emojis.length)];
+    span.style.setProperty('--dx', (Math.random()*260-130)+'px');
+    span.style.left = (50+(Math.random()*30-15))+'%';
+    span.style.animationDelay = (Math.random()*0.3)+'s';
+    overlay.appendChild(span);
+  }
+  const badge = document.createElement('div'); badge.className='celebrate-badge';
+  badge.textContent = '🔥 لحظتك الآن مرئية للجميع!'; overlay.appendChild(badge);
+  overlay.classList.add('go');
+  setTimeout(()=>{ overlay.classList.remove('go'); overlay.innerHTML=''; }, 1500);
+}
+
+// ---------------- STORIES / NOTIFS / GRIDS (data-driven) ----------------
+function renderStories(){
+  const row = document.getElementById('storiesRow'); if(!row) return;
+  const recentAuthors = [...new Set(postsCache.map(p=>p.authorId).filter(Boolean))].slice(0,8);
+  let html = `<div class="story add" onclick="openComposer()"><div class="story-ring"><div class="story-avatar" style="background:var(--surface-2);">+</div></div><span>إضافة</span></div>`;
+  html += recentAuthors.map((id,i) => {
+    const name = nameOf(id);
+    const clickable = id===myId ? '' : `onclick="startDM('${id}'); showTab('chat');"`;
+    return `<div class="story" ${clickable}><div class="story-ring ${i%3===0?'seen':''}"><div class="story-avatar" style="background:${g(hashStr(id))};">${name.charAt(0).toUpperCase()}</div></div><span>${escapeHtml(name)}</span></div>`;
+  }).join('');
+  row.innerHTML = html;
+}
+function renderNotifs(){
+  const list = document.getElementById('notifList'); if(!list) return;
+  if(!myId){ list.innerHTML = '<div class="empty-feed">ما فيه إشعارات</div>'; return; }
+  const myPosts = postsCache.filter(p=>p.authorId===myId);
+  const events = [];
+  myPosts.forEach(p => {
+    (p.likedBy||[]).filter(u=>u!==myId).forEach(u=>events.push({type:'like', uid:u, ts:p.createdAt}));
+    (p.comments||[]).forEach(c=>events.push({type:'comment', name:c.name, text:c.text, ts:c.ts}));
+  });
+  events.sort((a,b)=>(b.ts||0)-(a.ts||0));
+  const top = events.slice(0,10);
+  if(top.length===0){ list.innerHTML = '<div class="empty-feed">لسا ما فيه تفاعل على لحظاتك 📭</div>'; return; }
+  list.innerHTML = top.map(ev => {
+    if(ev.type==='like'){
+      const name = nameOf(ev.uid);
+      return `<div class="notif-item"><div class="avatar" style="background:${g(hashStr(ev.uid))};">❤️</div><div style="flex:1;"><p><b>${escapeHtml(name)}</b> أعجب بلحظتك</p><span>${timeAgo(ev.ts)}</span></div></div>`;
+    }
+    return `<div class="notif-item"><div class="avatar" style="background:${g(2)};">💬</div><div style="flex:1;"><p><b>${escapeHtml(ev.name||'شخص')}</b> علّق: ${escapeHtml((ev.text||'').slice(0,40))}</p><span>${timeAgo(ev.ts)}</span></div></div>`;
+  }).join('');
+}
+function renderGrids(){
+  const my = document.getElementById('myGrid');
+  const myImgs = postsCache.filter(p=>p.authorId===myId).map(p=>p.mainImage).filter(Boolean);
+  if(my) my.innerHTML = (myImgs.length?myImgs:Array(9).fill(null)).slice(0,9).map((img,i)=>`<div style="${img?`background-image:url(${img});`:`background:${g(i)};`}"></div>`).join('');
+}
+
+// ---------------- CHAT ----------------
+let chatsSubscribed=false, chatsCache=[], currentConvoId=null, unsubMessages=null, groupMode=false, selectedPeople=[];
+function dmIdFor(otherId){ return 'dm__' + [myId, otherId].sort().join('__'); }
+function subscribeChats(){
+  chatsSubscribed = true;
+  db.collection('chats').where('participants','array-contains', myId).orderBy('lastAt','desc').limit(50)
+    .onSnapshot(snap => { chatsCache = snap.docs.map(d=>({id:d.id, ...d.data()})); renderChatList(); }, err=>console.error(err));
+}
+function renderChatList(){
+  const el = document.getElementById('chatList');
+  if(chatsCache.length===0){ el.innerHTML='<div class="empty-feed">ما عندك محادثات بعد — ابدأ وحدة جديدة 💬</div>'; return; }
+  el.innerHTML = chatsCache.map(c => {
+    let title, avatarGrad, avatarHtml;
+    if(c.type==='group'){ title=c.name||'مجموعة'; avatarGrad=g(hashStr(c.id)); avatarHtml='👥'; }
+    else{ const otherId=c.participants.find(p=>p!==myId); title=nameOf(otherId); avatarGrad=g(hashStr(otherId||'x')); avatarHtml=title.charAt(0).toUpperCase(); }
+    return `<div class="chat-row" onclick="openConvo('${c.id}')"><div class="avatar" style="background:${avatarGrad};">${avatarHtml}</div>
+      <div class="meta"><b>${escapeHtml(title)}</b><span>${escapeHtml(c.lastMessage||'ابدأ المحادثة')}</span></div><div class="time">${timeAgo(c.lastAt)}</div></div>`;
+  }).join('');
+}
+function openConvo(chatId){
+  currentConvoId = chatId;
+  const c = chatsCache.find(x=>x.id===chatId);
+  let title='محادثة', avatarGrad=g(0), avatarHtml='👥';
+  if(c){
+    if(c.type==='group'){ title=c.name||'مجموعة'; avatarGrad=g(hashStr(c.id)); avatarHtml='👥'; }
+    else{ const otherId=c.participants.find(p=>p!==myId); title=nameOf(otherId); avatarGrad=g(hashStr(otherId||'x')); avatarHtml=title.charAt(0).toUpperCase(); }
+  }
+  document.getElementById('convoTitle').textContent = title;
+  const av = document.getElementById('convoAvatar'); av.style.background=avatarGrad; av.textContent=avatarHtml;
+  document.getElementById('convoScreen').classList.add('open');
+  subscribeMessages(chatId);
+}
+function closeConvo(){
+  document.getElementById('convoScreen').classList.remove('open');
+  if(unsubMessages){ unsubMessages(); unsubMessages=null; }
+  currentConvoId=null;
+}
+function subscribeMessages(chatId){
+  if(unsubMessages) unsubMessages();
+  const box = document.getElementById('convoMessages'); box.innerHTML='';
+  unsubMessages = db.collection('chats').doc(chatId).collection('messages').orderBy('ts','asc').limit(200)
+    .onSnapshot(snap => {
+      box.innerHTML = snap.docs.map(d => {
+        const m=d.data(); const mine=m.senderId===myId;
+        const time = new Date(m.ts||Date.now()).toLocaleTimeString('ar',{hour:'2-digit',minute:'2-digit'});
+        return `<div class="msg ${mine?'mine':'theirs'}">${escapeHtml(m.text||'')}<span class="msg-time">${time}</span></div>`;
+      }).join('');
+      box.scrollTop = box.scrollHeight;
+    }, err=>console.error(err));
+}
+function sendMessage(){
+  if(!myId || !currentConvoId) return;
+  const input = document.getElementById('convoInput');
+  const text = input.value.trim(); if(!text) return;
+  input.value='';
+  db.collection('chats').doc(currentConvoId).collection('messages').add({ senderId:myId, text, ts:Date.now() })
+    .then(()=> db.collection('chats').doc(currentConvoId).update({ lastMessage:text, lastAt:Date.now() }))
+    .catch(console.error);
+}
+function openNewChat(){
+  groupMode=false; selectedPeople=[];
+  document.getElementById('groupNameWrap').style.display='none';
+  document.getElementById('searchConfirmBtn').style.display='none';
+  document.getElementById('selectedChips').innerHTML='';
+  document.getElementById('searchInput').value='';
+  document.getElementById('searchOverlay').classList.add('open');
+  runPeopleSearch('');
+}
+function openNewGroup(){
+  groupMode=true; selectedPeople=[];
+  document.getElementById('groupNameWrap').style.display='block';
+  document.getElementById('groupNameInput').value='';
+  document.getElementById('searchConfirmBtn').style.display='block';
+  renderChips();
+  document.getElementById('searchInput').value='';
+  document.getElementById('searchOverlay').classList.add('open');
+  runPeopleSearch('');
+}
+function closeSearchOverlay(){ document.getElementById('searchOverlay').classList.remove('open'); }
+function runPeopleSearch(q){
+  const query = (q||'').trim().toLowerCase();
+  const results = Object.entries(usersCache)
+    .filter(([id]) => id !== myId)
+    .filter(([id, u]) => !query || (u.name||'').toLowerCase().includes(query));
+  const box = document.getElementById('searchResults');
+  box.innerHTML = results.map(([id,u]) => `
+    <div class="search-result" onclick="${groupMode ? `togglePerson('${id}','${(u.name||'شخص').replace(/'/g,"\\'")}')` : `startDM('${id}')`}">
+      <div class="avatar" style="width:40px;height:40px;background:${g(hashStr(id))};">${(u.name||'؟').charAt(0).toUpperCase()}</div>
+      <b>${escapeHtml(u.name||'شخص')}</b>
+    </div>`).join('') || '<div class="empty-feed">ما فيه نتائج</div>';
+}
+function startDM(otherId){
+  closeSearchOverlay();
+  const chatId = dmIdFor(otherId);
+  db.collection('chats').doc(chatId).get().then(snap => {
+    if(!snap.exists){
+      return db.collection('chats').doc(chatId).set({ type:'dm', participants:[myId, otherId], createdAt:Date.now(), lastMessage:'', lastAt:Date.now() });
+    }
+  }).then(() => openConvo(chatId)).catch(console.error);
+}
+function togglePerson(id, name){
+  const i = selectedPeople.findIndex(p=>p.id===id);
+  if(i>=0) selectedPeople.splice(i,1); else selectedPeople.push({id,name});
+  renderChips();
+}
+function renderChips(){
+  document.getElementById('selectedChips').innerHTML = selectedPeople.map(p =>
+    `<div class="chip">${escapeHtml(p.name)}<button onclick="togglePerson('${p.id}','${p.name.replace(/'/g,"\\'")}')">✕</button></div>`).join('');
+}
+function confirmGroupCreate(){
+  const name = document.getElementById('groupNameInput').value.trim();
+  if(!name){ alert('اكتب اسم للمجموعة'); return; }
+  if(selectedPeople.length===0){ alert('اختر شخص واحد على الأقل'); return; }
+  db.collection('chats').add({
+    type:'group', name, participants:[myId, ...selectedPeople.map(p=>p.id)],
+    createdBy:myId, createdAt:Date.now(), lastMessage:'تم إنشاء المجموعة', lastAt:Date.now()
+  }).then(ref => { closeSearchOverlay(); openConvo(ref.id); }).catch(()=>alert('تعذّر إنشاء المجموعة'));
+}
+
+function showTab(name){
+  document.querySelectorAll('.tab-panel').forEach(el=>{ el.classList.remove('active'); el.style.display=(el.id==='tab-chat')?'none':''; });
+  document.getElementById('tab-'+name).classList.add('active');
+  if(name==='chat'){ document.getElementById('tab-chat').style.display='block'; if(!chatsSubscribed) subscribeChats(); }
+  document.querySelectorAll('.nav-btn').forEach(b=>b.classList.remove('active'));
+  const map = {home:'nav-home', chat:'nav-chat', notif:'nav-notif2', profile:'nav-profile'};
+  if(map[name]) document.getElementById(map[name]).classList.add('active');
+}
+
+let secondsLeft=107;
+setInterval(() => {
+  if(secondsLeft<=0){ secondsLeft=107; }
+  secondsLeft--;
+  const m=String(Math.floor(secondsLeft/60)).padStart(2,'0');
+  const s=String(secondsLeft%60).padStart(2,'0');
+  const el=document.getElementById('timerDisplay'); if(el) el.textContent=`${m}:${s}`;
+}, 1000);
+</script>
+</body>
+</html>
