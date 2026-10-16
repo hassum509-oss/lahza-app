@@ -1,0 +1,36 @@
+<!DOCTYPE html><html lang="ar" dir="rtl"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>أفاتار لحظة 3D</title>
+<style>*{box-sizing:border-box;margin:0}body{background:#080813;color:#f5f0e8;font-family:Tajawal,system-ui,sans-serif;height:100dvh;display:flex;flex-direction:column}#v{flex:1;min-height:0;touch-action:none}canvas{display:block;width:100%;height:100%}.p{display:flex;flex-wrap:wrap;gap:10px;padding:12px;background:#12121f;border-top:1px solid #26263c;align-items:center;justify-content:center}.p label{display:flex;flex-direction:column;align-items:center;font-size:12px;gap:4px;color:#8b8aa6}.p input[type=color]{width:44px;height:34px;border:1px solid #26263c;border-radius:10px;background:none;padding:0}.p button{padding:10px 16px;border-radius:14px;border:0;background:linear-gradient(90deg,#8b5cf6,#f5b44d);color:#fff;font:800 14px system-ui}.p input[type=range]{width:120px}</style></head><body>
+<div id="v"></div>
+<div class="p"><label>الهودي<input type="color" id="c1" value="#15131f"></label><label>الشعر<input type="color" id="c2" value="#14111f"></label><label>البنطال<input type="color" id="c3" value="#1d1b2b"></label><label>البشرة<input type="color" id="c4" value="#f1c9a5"></label><label>الطول <span id="hl">175</span> سم<input type="range" id="h" min="150" max="200" value="175"></label><button id="w">👋 تحية</button></div>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script>
+const V=document.getElementById('v'),R=new THREE.WebGLRenderer({antialias:true,alpha:true});R.setPixelRatio(Math.min(2,devicePixelRatio));V.appendChild(R.domElement);
+const Sc=new THREE.Scene(),Ca=new THREE.PerspectiveCamera(35,1,.1,50);Ca.position.set(0,1.5,7);Ca.lookAt(0,1.4,0);
+Sc.add(new THREE.AmbientLight(0xffffff,.6));const dl=new THREE.DirectionalLight(0xffffff,.9);dl.position.set(3,5,4);Sc.add(dl);const pl=new THREE.PointLight(0x8b5cf6,1.2,12);pl.position.set(-3,2,2);Sc.add(pl);const gl=new THREE.PointLight(0xf5b44d,.6,10);gl.position.set(3,1,-2);Sc.add(gl);
+const M=(c,o)=>new THREE.MeshStandardMaterial(Object.assign({color:c,roughness:.7},o||{})),skin=M(0xf1c9a5),hood=M(0x15131f),hair=M(0x14111f),pants=M(0x1d1b2b),gold=M(0xf5b44d,{metalness:.6,roughness:.3}),vio=M(0x8b5cf6,{emissive:0x4c1d95,roughness:.3}),white=M(0xf5f0e8);
+const A=new THREE.Group(),m=(g,mt,x,y,z)=>{const o=new THREE.Mesh(g,mt);o.position.set(x||0,y||0,z||0);A.add(o);return o};
+const cy=(a,b,h,s)=>new THREE.CylinderGeometry(a,b,h,s||24),sp=(r)=>new THREE.SphereGeometry(r,32,24);
+const head=m(sp(.5),skin,0,2.75,0);head.scale.y=1.1;
+const hr=m(new THREE.SphereGeometry(.54,32,24,0,Math.PI*2,0,Math.PI*.52),hair,0,2.8,-.02);hr.scale.y=1.1;
+m(new THREE.BoxGeometry(.9,.18,.3),hair,0,3.0,.38).rotation.x=.4;
+[[-.7,3.18],[0,3.3],[.55,3.15]].forEach(p=>{const s=m(new THREE.ConeGeometry(.14,.4,8),hair,p[0]*.45,p[1]+.05,0);s.rotation.z=-p[0]*.4});
+[-.18,.18].forEach(x=>{m(sp(.055),M(0x2b1a10),x,2.75,.46);m(new THREE.BoxGeometry(.2,.04,.04),hair,x,2.9,.47)});
+m(sp(.1),skin,-.5,2.75,0);m(sp(.1),skin,.5,2.75,0);
+m(cy(.16,.18,.2),skin,0,2.18,0);
+const body=m(cy(.62,.72,1.35),hood,0,1.45,0);body.scale.z=.7;
+m(new THREE.TorusGeometry(.32,.09,12,24),M(0x241f3a),0,2.12,0).rotation.x=Math.PI/2;
+const lg=m(new THREE.OctahedronGeometry(.2),vio,0,1.55,.5);lg.scale.set(1,1.4,.4);m(new THREE.TorusGeometry(.24,.02,8,4),gold,0,1.55,.52).rotation.z=Math.PI/4;
+[-.12,.12].forEach(x=>m(cy(.015,.015,.4,8),gold,x,1.95,.5));
+function arm(sd){const g=new THREE.Group();g.position.set(sd*.8,2.05,0);const u=new THREE.Mesh(cy(.17,.15,1.1),hood);u.position.y=-.55;g.add(u);const h=new THREE.Mesh(sp(.16),skin);h.position.y=-1.18;g.add(h);g.rotation.z=sd*.12;A.add(g);return g}
+const aL=arm(-1),aR=arm(1);
+const lL=m(cy(.28,.25,1.25),pants,-.3,.55,0),lR=m(cy(.28,.25,1.25),pants,.3,.55,0);
+[-.3,.3].forEach(x=>{m(new THREE.BoxGeometry(.5,.22,.8),white,x,-.12,.1);m(new THREE.BoxGeometry(.52,.07,.82),vio,x,-.24,.1)});
+const base=new THREE.Mesh(cy(1.6,1.7,.12,48),M(0x1a0b3a,{metalness:.5}));base.position.y=-.4;Sc.add(base);const ring=new THREE.Mesh(new THREE.TorusGeometry(1.62,.04,8,64),gold);ring.rotation.x=Math.PI/2;ring.position.y=-.34;Sc.add(ring);
+A.position.y=.0;Sc.add(A);
+const set=(id,mt)=>document.getElementById(id).oninput=e=>mt.color.set(e.target.value);set('c1',hood);set('c2',hair);set('c3',pants);set('c4',skin);
+const hs=document.getElementById('h');hs.oninput=()=>{document.getElementById('hl').textContent=hs.value;A.scale.y=hs.value/175};
+let ry=0,dr=0,lx=0,wv=0,idle=1;document.getElementById('w').onclick=()=>wv=performance.now();
+V.onpointerdown=e=>{dr=1;lx=e.clientX;idle=0};addEventListener('pointerup',()=>dr=0);addEventListener('pointermove',e=>{if(dr){ry+=(e.clientX-lx)*.01;lx=e.clientX}});
+function rs(){const w=V.clientWidth,h=V.clientHeight;R.setSize(w,h,false);Ca.aspect=w/h;Ca.position.z=w/h<.8?9:7;Ca.updateProjectionMatrix()}addEventListener('resize',rs);rs();
+(function f(t){requestAnimationFrame(f);if(idle&&!dr)ry+=.006;A.rotation.y=ry;const b=Math.sin(t/600)*.02;A.position.y=b;aL.rotation.x=Math.sin(t/700)*.08;const k=(t-wv)/1400;aR.rotation.x=k<1?0:Math.sin(t/700+1)*.08;aR.rotation.z=k<1?.12+(-2.2-.12)*Math.sin(k*Math.PI)*.9+Math.sin(k*30)*.15*Math.sin(k*Math.PI):.12;R.render(Sc,Ca)})(0);
+</script></body></html>
